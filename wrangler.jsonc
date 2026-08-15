@@ -6,5 +6,17 @@
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application"
-  }
+  },
+  // This binding connects the Worker to the D1 database. "database_id" is a
+  // placeholder — replace it with the real ID printed after running
+  // `wrangler d1 create boom-balloons-linkedin-discovery` (see the setup
+  // notes shared alongside this change).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "boom-balloons-linkedin-discovery",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

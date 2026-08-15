@@ -16,7 +16,8 @@
   font-weight: 500;
   font-size: var(--fs-small);
   color: var(--color-ink-soft);
-  padding: var(--space-2) 0;
+  padding: var(--space-2) var(--space-1);
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -33,6 +34,7 @@
   border: none;
   border-radius: var(--radius-pill);
   padding: 0.9rem 1.75rem;
+  min-height: 44px;
   font-family: var(--font-sans);
   font-weight: 600;
   font-size: 1rem;
@@ -66,4 +68,10 @@
   background: var(--color-bg-subtle);
   border-radius: 6px;
   padding: 0.15rem 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .hint {
+    display: none;
+  }
 }

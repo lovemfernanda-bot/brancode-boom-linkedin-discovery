@@ -12,7 +12,7 @@ interface NavigationControlsProps {
 export function NavigationControls({
   onPrevious,
   onNext,
-  nextLabel = "OK",
+  nextLabel = "Siguiente",
   isNextEnabled,
   showPrevious,
   keyboardHint,

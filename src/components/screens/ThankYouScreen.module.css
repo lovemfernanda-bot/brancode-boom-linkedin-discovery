@@ -11,6 +11,14 @@
   animation: rise var(--duration) var(--ease);
 }
 
+@media (max-width: 640px), (max-height: 500px) {
+  .screen {
+    align-items: flex-start;
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-5);
+  }
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

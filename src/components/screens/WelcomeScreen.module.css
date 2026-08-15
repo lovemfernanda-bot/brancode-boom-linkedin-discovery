@@ -10,6 +10,14 @@
   width: 100%;
 }
 
+@media (max-width: 640px), (max-height: 500px) {
+  .screen {
+    align-items: flex-start;
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-5);
+  }
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -112,4 +120,10 @@
   background: var(--color-bg-subtle);
   border-radius: 6px;
   padding: 0.15rem 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .hint {
+    display: none;
+  }
 }

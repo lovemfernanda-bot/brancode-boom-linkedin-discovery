@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Question } from "../../content/types";
+import { isAnswered } from "../../content/validate";
 import { LongTextInput } from "../questions/LongTextInput";
 import { OptionCards } from "../questions/OptionCards";
 import { NavigationControls } from "../ui/NavigationControls";
@@ -15,12 +16,6 @@ interface QuestionScreenProps {
   onNext: () => void;
   onPrevious: () => void;
   isFirst: boolean;
-}
-
-function isAnswered(question: Question, value: string | string[] | undefined): boolean {
-  if (!question.required) return true;
-  if (question.type === "long-text") return typeof value === "string" && value.trim().length > 0;
-  return Array.isArray(value) && value.length > 0;
 }
 
 export function QuestionScreen({

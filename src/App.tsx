@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "./components/ui/Header";
 import { WelcomeScreen } from "./components/screens/WelcomeScreen";
 import { QuestionScreen } from "./components/screens/QuestionScreen";
@@ -16,6 +16,14 @@ export function App() {
 
   const total = boomBalloonsQuestionnaire.length;
   const currentQuestion = boomBalloonsQuestionnaire[stepIndex];
+
+  // Every screen (welcome, each question, thank-you) should start scrolled
+  // to the top — otherwise a tall question that required scrolling leaves
+  // the next screen loaded mid-scroll, hiding its headline under the
+  // sticky header.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  }, [stage, stepIndex]);
 
   function goNext() {
     if (stepIndex < total - 1) {
