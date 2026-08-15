@@ -1,0 +1,52 @@
+/*
+  BranCode design tokens.
+  Source: BranCode brand reference (fonts + color palette).
+  Change values here to restyle the entire form — nothing else should
+  hardcode a color or font.
+*/
+:root {
+  /* Brand colors */
+  --color-bg: #f6f4f1; /* warm off-white background */
+  --color-bg-subtle: #e4ded2; /* secondary warm tone: borders, dividers, cards */
+  --color-coral: #f98174; /* primary accent */
+  --color-yellow: #fff0b1; /* secondary accent */
+  --color-ink: #000000; /* primary text */
+
+  --color-ink-soft: rgba(0, 0, 0, 0.62); /* supporting copy */
+  --color-ink-faint: rgba(0, 0, 0, 0.38); /* placeholders, hints */
+  --color-border: rgba(0, 0, 0, 0.14);
+  --color-border-strong: rgba(0, 0, 0, 0.85);
+
+  --color-coral-tint: rgba(249, 129, 116, 0.14);
+  --color-yellow-tint: rgba(255, 240, 177, 0.55);
+
+  /* Typography */
+  --font-serif: "Playfair Display", "Georgia", serif;
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --fs-headline: clamp(2.25rem, 4.4vw + 1rem, 4rem);
+  --fs-subhead: clamp(1.5rem, 2vw + 1rem, 2.25rem);
+  --fs-eyebrow: 0.8125rem;
+  --fs-body: clamp(1.05rem, 0.4vw + 0.95rem, 1.25rem);
+  --fs-input: clamp(1.15rem, 0.5vw + 1rem, 1.5rem);
+  --fs-small: 0.875rem;
+
+  /* Spacing scale */
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-7: 4rem;
+  --space-8: 6rem;
+
+  /* Shape / motion */
+  --radius-pill: 999px;
+  --radius-card: 18px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration: 320ms;
+
+  --content-max-width: 46rem;
+  --page-inline-padding: clamp(1.5rem, 6vw, 6.5rem);
+}

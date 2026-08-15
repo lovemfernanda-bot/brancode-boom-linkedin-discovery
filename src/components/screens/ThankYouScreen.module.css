@@ -1,0 +1,66 @@
+.screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: var(--space-7) var(--page-inline-padding);
+}
+
+.inner {
+  max-width: var(--content-max-width);
+  width: 100%;
+  animation: rise var(--duration) var(--ease);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--color-coral-tint);
+  color: var(--color-coral);
+  font-size: 1.5rem;
+  margin-bottom: var(--space-4);
+}
+
+.headline {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: var(--fs-headline);
+  line-height: 1.08;
+  margin: 0;
+}
+
+.headline em {
+  font-style: italic;
+  color: var(--color-coral);
+  font-weight: 500;
+}
+
+.body {
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  color: var(--color-ink-soft);
+  max-width: 46ch;
+  margin: var(--space-4) 0 0;
+}
+
+.signature {
+  margin-top: var(--space-6);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.4rem;
+  color: var(--color-ink);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

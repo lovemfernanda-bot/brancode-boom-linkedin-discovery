@@ -1,0 +1,23 @@
+.textarea {
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  background: transparent;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: var(--fs-input);
+  color: var(--color-ink);
+  padding: var(--space-2) 0 var(--space-3);
+  min-height: 3.25rem;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.textarea::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.textarea:focus {
+  border-bottom-color: var(--color-coral);
+}

@@ -1,0 +1,32 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+}
+
+.progressTrack {
+  height: 3px;
+  width: 100%;
+  background: var(--color-bg-subtle);
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-coral);
+  transition: width var(--duration) var(--ease);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--page-inline-padding) var(--space-2);
+}
+
+.stepLabel {
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  color: var(--color-ink-faint);
+  font-variant-numeric: tabular-nums;
+}

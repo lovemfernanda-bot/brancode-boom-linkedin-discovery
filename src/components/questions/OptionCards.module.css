@@ -1,0 +1,59 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  color: var(--color-ink);
+  transition: border-color var(--duration) var(--ease), background var(--duration) var(--ease),
+    transform var(--duration) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--color-ink-soft);
+  transform: translateY(-1px);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-coral);
+  outline-offset: 2px;
+}
+
+.cardSelected {
+  border-color: var(--color-coral);
+  background: var(--color-coral-tint);
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  border-radius: 8px;
+  background: var(--color-yellow);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.label {
+  flex: 1;
+}
+
+.check {
+  color: var(--color-coral);
+  font-weight: 700;
+}
