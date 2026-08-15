@@ -17,8 +17,6 @@ export interface Question {
   required: boolean;
   placeholder?: string;
   options?: QuestionOption[];
-  /** Marks seed/demo content that must be replaced before this form goes live. */
-  isPlaceholder?: boolean;
 }
 
 export type Answer = string | string[];

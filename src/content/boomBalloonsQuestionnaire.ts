@@ -2,136 +2,142 @@ import type { Question } from "./types";
 
 /**
  * Boom Balloons Miami — LinkedIn Discovery questionnaire.
- *
- * Questions 1 and 4 are transcribed verbatim from the approved design
- * reference screenshots. Every other question below is a PLACEHOLDER
- * standing in for the real questionnaire content so the 11-question flow,
- * progress counter, and all three input types can be reviewed end to end.
- * Placeholders are clearly labeled and must be replaced with the final
- * question text before this form is used with the client — nothing about
- * Boom Balloons Miami has been invented here.
+ * Final approved content (12 questions).
  */
 export const boomBalloonsQuestionnaire: Question[] = [
   {
-    id: "founder-inspiration",
+    id: "q1",
     type: "long-text",
-    section: "HISTORIA DE LA FUNDADORA — KAROL SALAZAR",
-    question: "¿Qué te inspiró a crear Boom Balloons Miami?",
+    question: "¿Qué te inspiró a crear Boom Balloons Miami y cómo comenzó el negocio?",
     helper: "Cuéntanos con tus propias palabras.",
     required: true,
     placeholder: "Escribe tu respuesta...",
   },
   {
-    id: "placeholder-2",
+    id: "q2",
     type: "long-text",
-    section: "HISTORIA DE LA FUNDADORA — KAROL SALAZAR",
-    question: "[Pendiente: pregunta 2 del cuestionario final]",
-    helper: "Este contenido se reemplazará por la pregunta real.",
+    question:
+      "¿Cuáles son hoy los principales servicios de Boom Balloons Miami y cuáles te interesa impulsar más?",
     required: true,
     placeholder: "Escribe tu respuesta...",
-    isPlaceholder: true,
   },
   {
-    id: "placeholder-3",
+    id: "q3",
+    type: "multi-select",
+    question: "¿Quiénes son actualmente sus principales clientes?",
+    helper:
+      "Por ejemplo: clientes particulares, empresas, hoteles, venues, event planners, marcas, agencias, etc.",
+    required: true,
+    options: [
+      { id: "clientes-particulares", label: "Clientes particulares" },
+      { id: "empresas", label: "Empresas" },
+      { id: "hoteles", label: "Hoteles" },
+      { id: "venues", label: "Venues" },
+      { id: "event-planners", label: "Event planners" },
+      { id: "marcas", label: "Marcas" },
+      { id: "agencias", label: "Agencias" },
+      { id: "otro", label: "Otro" },
+    ],
+  },
+  {
+    id: "q4",
     type: "long-text",
-    section: "HISTORIA DE LA FUNDADORA — KAROL SALAZAR",
-    question: "[Pendiente: pregunta 3 del cuestionario final]",
-    helper: "Este contenido se reemplazará por la pregunta real.",
+    question: "¿Qué tipo de clientes u oportunidades te gustaría atraer con mayor frecuencia?",
     required: true,
     placeholder: "Escribe tu respuesta...",
-    isPlaceholder: true,
   },
   {
-    id: "professional-positioning",
+    id: "q5",
     type: "long-text",
-    section: "HISTORIA DE LA FUNDADORA — KAROL SALAZAR",
+    question:
+      "¿Qué consideras que diferencia a Boom Balloons Miami de otras compañías de decoración/eventos en Miami?",
+    helper: "Puede ser servicio, creatividad, experiencia, ejecución, calidad, relaciones, especialización, etc.",
+    required: true,
+    placeholder: "Escribe tu respuesta...",
+  },
+  {
+    id: "q6",
+    type: "long-text",
+    question:
+      "¿Hay clientes, proyectos, eventos, colaboraciones, reconocimientos o logros que podamos mencionar públicamente para fortalecer la credibilidad de la marca?",
+    required: false,
+    placeholder: "Escribe tu respuesta... (opcional)",
+  },
+  {
+    id: "q7",
+    type: "long-text",
     question:
       "Más allá de Boom Balloons, ¿cómo te gustaría que las personas conozcan a Karol Salazar profesionalmente?",
     helper:
-      'Esta pregunta es CLAVE. No queremos que LinkedIn termine posicionándote simplemente como "the balloon lady" si eres una empresaria con una visión mayor.',
+      "Esta pregunta es clave. Queremos entender si LinkedIn debe posicionarte únicamente alrededor de Boom Balloons o también como empresaria, líder, creativa, founder, etc.",
     required: true,
     placeholder: "Escribe tu respuesta...",
   },
   {
-    id: "placeholder-5",
-    type: "single-choice",
-    section: "[Pendiente: sección 5]",
-    question: "[Pendiente: pregunta 5 del cuestionario final — opción única]",
-    helper: "Este contenido se reemplazará por la pregunta real.",
-    required: true,
-    options: [
-      { id: "a", label: "Opción 1" },
-      { id: "b", label: "Opción 2" },
-      { id: "c", label: "Opción 3" },
-    ],
-    isPlaceholder: true,
-  },
-  {
-    id: "placeholder-6",
+    id: "q8",
     type: "multi-select",
-    section: "[Pendiente: sección 6]",
-    question: "[Pendiente: pregunta 6 del cuestionario final — selección múltiple]",
-    helper: "Este contenido se reemplazará por la pregunta real.",
+    question: "¿De qué temas te sentirías cómoda hablando desde tu perfil personal de LinkedIn?",
+    helper: "Selecciona todas las que apliquen.",
     required: true,
     options: [
-      { id: "a", label: "Opción 1" },
-      { id: "b", label: "Opción 2" },
-      { id: "c", label: "Opción 3" },
-      { id: "d", label: "Opción 4" },
+      { id: "emprendimiento", label: "Emprendimiento" },
+      { id: "construccion-negocios", label: "Construcción de negocios" },
+      { id: "eventos-experiencias", label: "Eventos y experiencias" },
+      { id: "creatividad-diseno", label: "Creatividad y diseño" },
+      { id: "liderazgo", label: "Liderazgo" },
+      { id: "mujeres-negocios", label: "Mujeres en los negocios" },
+      { id: "crecimiento-empresarial", label: "Crecimiento empresarial" },
+      { id: "experiencia-cliente", label: "Experiencia del cliente" },
+      { id: "lecciones-aprendidas", label: "Lecciones aprendidas como empresaria" },
+      { id: "behind-the-scenes", label: "Behind the scenes de Boom Balloons" },
+      { id: "tendencias-eventos", label: "Tendencias de eventos" },
+      { id: "otro", label: "Otro" },
     ],
-    isPlaceholder: true,
   },
   {
-    id: "placeholder-7",
-    type: "long-text",
-    section: "[Pendiente: sección 7]",
-    question: "[Pendiente: pregunta 7 del cuestionario final]",
-    required: true,
-    placeholder: "Escribe tu respuesta...",
-    isPlaceholder: true,
-  },
-  {
-    id: "placeholder-8",
-    type: "long-text",
-    section: "[Pendiente: sección 8]",
-    question: "[Pendiente: pregunta 8 del cuestionario final]",
-    required: true,
-    placeholder: "Escribe tu respuesta...",
-    isPlaceholder: true,
-  },
-  {
-    id: "placeholder-9",
+    id: "q9",
     type: "multi-select",
-    section: "[Pendiente: sección 9]",
-    question: "[Pendiente: pregunta 9 del cuestionario final — selección múltiple]",
+    question: "¿Qué te gustaría conseguir principalmente con LinkedIn?",
     required: true,
     options: [
-      { id: "a", label: "Opción 1" },
-      { id: "b", label: "Opción 2" },
-      { id: "c", label: "Opción 3" },
+      { id: "posicionar-boom", label: "Posicionar profesionalmente a Boom Balloons Miami" },
+      { id: "posicionar-fundadora", label: "Posicionarme como fundadora / empresaria" },
+      { id: "clientes-corporativos", label: "Atraer clientes corporativos" },
+      { id: "nuevas-oportunidades", label: "Generar nuevas oportunidades de negocio" },
+      { id: "conectar-event-planners", label: "Conectar con event planners" },
+      { id: "conectar-hoteles-venues", label: "Conectar con hoteles y venues" },
+      { id: "partnerships-marcas", label: "Crear partnerships con marcas" },
+      { id: "networking", label: "Networking profesional" },
+      { id: "pr-medios", label: "PR / medios" },
+      { id: "autoridad-industria", label: "Construir autoridad en la industria" },
+      { id: "otro", label: "Otro" },
     ],
-    isPlaceholder: true,
   },
   {
-    id: "placeholder-10",
-    type: "single-choice",
-    section: "[Pendiente: sección 10]",
-    question: "[Pendiente: pregunta 10 del cuestionario final — opción única]",
-    required: true,
-    options: [
-      { id: "a", label: "Opción 1" },
-      { id: "b", label: "Opción 2" },
-    ],
-    isPlaceholder: true,
-  },
-  {
-    id: "placeholder-11",
+    id: "q10",
     type: "long-text",
-    section: "[Pendiente: sección 11]",
-    question: "[Pendiente: pregunta 11 del cuestionario final]",
-    helper: "Última pregunta de este bloque.",
-    required: false,
-    placeholder: "Escribe tu respuesta... (opcional)",
-    isPlaceholder: true,
+    question:
+      "¿Con qué personas, empresas o industrias te interesaría especialmente conectar a través de LinkedIn?",
+    required: true,
+    placeholder: "Escribe tu respuesta...",
+  },
+  {
+    id: "q11",
+    type: "long-text",
+    question:
+      "¿Qué tipo de oportunidades te gustaría que LinkedIn generara para Boom Balloons Miami o para ti personalmente?",
+    helper:
+      "Ej.: contratos corporativos, eventos de marcas, partnerships, venues, hoteles, speaking opportunities, collaborations, etc.",
+    required: true,
+    placeholder: "Escribe tu respuesta...",
+  },
+  {
+    id: "q12",
+    type: "long-text",
+    question:
+      "Imagina que ha pasado un año y LinkedIn ha funcionado increíblemente bien. ¿Qué tendría que haber ocurrido para que dijeras “esto realmente valió la pena”?",
+    helper: "No pienses solamente en seguidores. Piensa en clientes, relaciones, reputación, partnerships y crecimiento.",
+    required: true,
+    placeholder: "Escribe tu respuesta...",
   },
 ];
