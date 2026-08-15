@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "boom-balloons-linkedin-discovery",
+  "name": "brancode-boom-linkedin-discovery",
   "compatibility_date": "2024-12-05",
   "main": "worker/index.ts",
   "assets": {
