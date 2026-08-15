@@ -20,9 +20,15 @@ export function App() {
   // Every screen (welcome, each question, thank-you) should start scrolled
   // to the top — otherwise a tall question that required scrolling leaves
   // the next screen loaded mid-scroll, hiding its headline under the
-  // sticky header.
+  // sticky header. Resetting on the next animation frame (rather than
+  // synchronously) wins the race against the browser's own scroll
+  // adjustments (e.g. focus handling, scroll anchoring) that can otherwise
+  // run just after this effect and silently undo a synchronous reset.
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [stage, stepIndex]);
 
   function goNext() {

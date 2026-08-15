@@ -13,7 +13,7 @@ export function OptionCards({ options, mode, selected, onToggle }: OptionCardsPr
   const firstRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    firstRef.current?.focus();
+    firstRef.current?.focus({ preventScroll: true });
   }, []);
 
   return (

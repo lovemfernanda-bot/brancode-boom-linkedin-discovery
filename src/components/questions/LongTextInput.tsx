@@ -19,7 +19,7 @@ export function LongTextInput({ value, onChange, placeholder, onSubmitKey }: Lon
   }, [value]);
 
   useEffect(() => {
-    ref.current?.focus();
+    ref.current?.focus({ preventScroll: true });
   }, []);
 
   return (

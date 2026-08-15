@@ -13,6 +13,10 @@ body {
 
 html {
   overflow-x: hidden;
+  /* We manage scroll position ourselves on every screen change (see
+     App.tsx); scroll anchoring can otherwise silently re-scroll the page
+     when a taller/shorter question swaps in above the fold. */
+  overflow-anchor: none;
 }
 
 body {
@@ -24,7 +28,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
   overflow-wrap: break-word;
 }
 
