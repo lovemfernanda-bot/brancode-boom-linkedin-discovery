@@ -1,13 +1,17 @@
 import { Hono } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import type { Context } from "hono";
 import { boomBalloonsQuestionnaire } from "../src/content/boomBalloonsQuestionnaire";
 import { FORM_SLUG } from "../src/content/formMeta";
 import { isAnswered } from "../src/content/validate";
 import type { Answers } from "../src/content/types";
 import { insertSubmission, listSubmissions } from "./submissions";
-import { renderAdminPage } from "./admin-page";
+import { renderAdminLoginPage, renderAdminPage } from "./admin-page";
+import { SESSION_COOKIE_NAME, createSessionToken, verifyPassword, verifySessionToken } from "./auth";
 
 interface Env {
   DB: D1Database;
+  ADMIN_PASSWORD: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -42,6 +46,7 @@ function validateSubmission(body: SubmitPayload): string | null {
   return null;
 }
 
+// The public form and its submission endpoint stay unauthenticated.
 app.post("/api/submit", async (c) => {
   const body = await c.req.json<SubmitPayload>().catch(() => null);
   if (!body) {
@@ -73,7 +78,44 @@ app.post("/api/submit", async (c) => {
   }
 });
 
+async function isAuthenticated(c: Context<{ Bindings: Env }>): Promise<boolean> {
+  const token = getCookie(c, SESSION_COOKIE_NAME);
+  return verifySessionToken(c.env, token);
+}
+
+function setSessionCookie(c: Context<{ Bindings: Env }>, token: string, maxAge: number) {
+  setCookie(c, SESSION_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    path: "/",
+    maxAge,
+  });
+}
+
+app.post("/api/admin/login", async (c) => {
+  const body = await c.req.json<{ password?: unknown }>().catch(() => null);
+  const password = typeof body?.password === "string" ? body.password : "";
+
+  if (!password || !verifyPassword(c.env, password)) {
+    return c.json({ ok: false, error: "Contraseña incorrecta." }, 401);
+  }
+
+  const { token, maxAge } = await createSessionToken(c.env);
+  setSessionCookie(c, token, maxAge);
+  return c.json({ ok: true });
+});
+
+app.post("/api/admin/logout", (c) => {
+  deleteCookie(c, SESSION_COOKIE_NAME, { path: "/" });
+  return c.json({ ok: true });
+});
+
 app.get("/api/admin/submissions", async (c) => {
+  if (!(await isAuthenticated(c))) {
+    return c.json({ ok: false, error: "No autorizado." }, 401);
+  }
+
   try {
     const rows = await listSubmissions(c.env.DB, FORM_SLUG);
     const submissions = rows.map((row) => ({
@@ -90,6 +132,11 @@ app.get("/api/admin/submissions", async (c) => {
   }
 });
 
-app.get("/admin", (c) => c.html(renderAdminPage()));
+app.get("/admin", async (c) => {
+  if (!(await isAuthenticated(c))) {
+    return c.html(renderAdminLoginPage());
+  }
+  return c.html(renderAdminPage());
+});
 
 export default app;

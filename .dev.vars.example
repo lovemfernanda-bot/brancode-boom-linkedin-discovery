@@ -1,0 +1,5 @@
+## Copy this file to .dev.vars for local development (that file is gitignored
+## and never committed). In production, ADMIN_PASSWORD is set as a Cloudflare
+## Worker secret instead — see the setup notes for the exact dashboard steps.
+
+ADMIN_PASSWORD=change-me-locally

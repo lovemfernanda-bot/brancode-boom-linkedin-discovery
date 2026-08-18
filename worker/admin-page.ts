@@ -1,29 +1,9 @@
 import { boomBalloonsQuestionnaire } from "../src/content/boomBalloonsQuestionnaire";
 import { CLIENT_NAME } from "../src/content/formMeta";
 
-/**
- * Renders the internal admin page as a single self-contained HTML string.
- * No client-side framework, no build step — this is intentionally a plain
- * static page with a small inline script, since it only needs to list and
- * display submissions. Access control is handled entirely by Cloudflare
- * Access in front of /admin and /api/admin/*, not by this page.
- */
-export function renderAdminPage(): string {
-  const questionsJson = JSON.stringify(
-    boomBalloonsQuestionnaire.map((q) => ({
-      id: q.id,
-      question: q.question,
-      type: q.type,
-      options: q.options ?? null,
-    })),
-  );
-
-  return `<!doctype html>
-<html lang="es">
-<head>
+const SHARED_HEAD = `
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Respuestas — LinkedIn Discovery · ${CLIENT_NAME}</title>
 <meta name="robots" content="noindex, nofollow" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,13 +26,165 @@ export function renderAdminPage(): string {
     background: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    padding: 2rem clamp(1.25rem, 5vw, 4rem) 4rem;
   }
-  header { margin-bottom: 2rem; }
   .logo { font-family: var(--font-serif); font-weight: 700; font-size: 1.25rem; }
   .logo em { font-style: italic; font-weight: 600; }
+</style>
+`;
+
+/**
+ * Login screen shown at /admin when there is no valid session cookie.
+ * Submits the password to /api/admin/login; on success the server sets an
+ * HttpOnly session cookie and this page reloads into the authenticated view.
+ */
+export function renderAdminLoginPage(): string {
+  return `<!doctype html>
+<html lang="es">
+<head>
+${SHARED_HEAD}
+<title>Acceso — LinkedIn Discovery · ${CLIENT_NAME}</title>
+<style>
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--color-bg-subtle);
+    border-radius: 16px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 26rem;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1.75rem;
+    margin: 1.25rem 0 0.35rem;
+  }
+  .subtitle { color: var(--color-ink-soft); margin: 0 0 1.75rem; }
+  label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
+  input[type="password"] {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border: 1.5px solid var(--color-bg-subtle);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  input[type="password"]:focus { outline: 2px solid var(--color-coral); border-color: var(--color-coral); }
+  button {
+    margin-top: 1.25rem;
+    width: 100%;
+    background: var(--color-ink);
+    color: var(--color-bg);
+    border: none;
+    border-radius: 999px;
+    padding: 0.85rem;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  button:hover { background: var(--color-coral); color: var(--color-ink); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .error { color: #c7503f; font-size: 0.9rem; margin-top: 1rem; display: none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="logo">Bran<em>Code</em></span>
+    <h1>Acceso de administración</h1>
+    <p class="subtitle">Respuestas de LinkedIn Discovery — ${CLIENT_NAME}</p>
+    <form id="login-form">
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" autofocus required />
+      <button type="submit" id="submit-btn">Entrar</button>
+      <p class="error" id="error-msg">Contraseña incorrecta. Inténtalo de nuevo.</p>
+    </form>
+  </div>
+  <script>
+    const form = document.getElementById("login-form");
+    const errorMsg = document.getElementById("error-msg");
+    const submitBtn = document.getElementById("submit-btn");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      errorMsg.style.display = "none";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Entrando...";
+      try {
+        const password = document.getElementById("password").value;
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+        if (response.ok) {
+          window.location.reload();
+          return;
+        }
+        errorMsg.style.display = "block";
+      } catch {
+        errorMsg.style.display = "block";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Entrar";
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Authenticated admin view. Only rendered by the Worker after it has
+ * verified the session cookie server-side (see worker/index.ts) — this
+ * function itself performs no access control.
+ */
+export function renderAdminPage(): string {
+  const questionsJson = JSON.stringify(
+    boomBalloonsQuestionnaire.map((q) => ({
+      id: q.id,
+      question: q.question,
+      type: q.type,
+      options: q.options ?? null,
+    })),
+  );
+
+  return `<!doctype html>
+<html lang="es">
+<head>
+${SHARED_HEAD}
+<title>Respuestas — LinkedIn Discovery · ${CLIENT_NAME}</title>
+<style>
+  body { padding: 2rem clamp(1.25rem, 5vw, 4rem) 4rem; }
+  header {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
   h1 { font-family: var(--font-serif); font-weight: 600; font-size: clamp(1.75rem, 3vw, 2.5rem); margin: 1rem 0 0.25rem; }
   .subtitle { color: var(--color-ink-soft); margin: 0; }
+  #logout-btn {
+    background: none;
+    border: 1.5px solid var(--color-bg-subtle);
+    border-radius: 999px;
+    padding: 0.5rem 1.1rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #logout-btn:hover { border-color: var(--color-coral); color: var(--color-ink); }
   #status { color: var(--color-ink-faint); margin: 1.5rem 0; }
   .card {
     background: #fff;
@@ -94,16 +226,23 @@ export function renderAdminPage(): string {
 </head>
 <body>
   <header>
-    <span class="logo">Bran<em>Code</em></span>
-    <h1>Respuestas de LinkedIn Discovery</h1>
-    <p class="subtitle">${CLIENT_NAME}</p>
+    <div>
+      <span class="logo">Bran<em>Code</em></span>
+      <h1>Respuestas de LinkedIn Discovery</h1>
+      <p class="subtitle">${CLIENT_NAME}</p>
+    </div>
+    <button type="button" id="logout-btn">Cerrar sesión</button>
   </header>
   <div id="status">Cargando respuestas...</div>
   <div id="list"></div>
 
   <script>
     const QUESTIONS = ${questionsJson};
-    const QUESTION_MAP = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
+
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      await fetch("/api/admin/logout", { method: "POST" });
+      window.location.reload();
+    });
 
     function formatDate(iso) {
       try {
@@ -188,6 +327,10 @@ export function renderAdminPage(): string {
       const listEl = document.getElementById("list");
       try {
         const response = await fetch("/api/admin/submissions");
+        if (response.status === 401) {
+          window.location.reload();
+          return;
+        }
         if (!response.ok) throw new Error("HTTP " + response.status);
         const data = await response.json();
         if (!data.ok) throw new Error(data.error || "Error desconocido");
