@@ -5,7 +5,15 @@ import { boomBalloonsQuestionnaire } from "../src/content/boomBalloonsQuestionna
 import { FORM_SLUG } from "../src/content/formMeta";
 import { isAnswered } from "../src/content/validate";
 import type { Answers } from "../src/content/types";
-import { insertSubmission, listSubmissions } from "./submissions";
+import {
+  insertSubmission,
+  listSubmissions,
+  permanentlyDeleteSubmission,
+  restoreSubmission,
+  softDeleteSubmission,
+  updateSubmissionStatus,
+  type SubmissionStatus,
+} from "./submissions";
 import { renderAdminLoginPage, renderAdminPage } from "./admin-page";
 import { SESSION_COOKIE_NAME, createSessionToken, verifyPassword, verifySessionToken } from "./auth";
 
@@ -13,6 +21,8 @@ interface Env {
   DB: D1Database;
   ADMIN_PASSWORD: string;
 }
+
+type AppContext = Context<{ Bindings: Env }>;
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -78,12 +88,39 @@ app.post("/api/submit", async (c) => {
   }
 });
 
-async function isAuthenticated(c: Context<{ Bindings: Env }>): Promise<boolean> {
+async function isAuthenticated(c: AppContext): Promise<boolean> {
   const token = getCookie(c, SESSION_COOKIE_NAME);
   return verifySessionToken(c.env, token);
 }
 
-function setSessionCookie(c: Context<{ Bindings: Env }>, token: string, maxAge: number) {
+/**
+ * Lightweight CSRF defense on top of the SameSite=Strict session cookie:
+ * state-changing admin requests must carry an Origin (or, failing that,
+ * Referer) header matching this Worker's own host. Requests with neither
+ * header are rejected rather than assumed safe.
+ */
+function isSameOrigin(c: AppContext): boolean {
+  const requestHost = new URL(c.req.url).host;
+  const origin = c.req.header("Origin");
+  if (origin) {
+    try {
+      return new URL(origin).host === requestHost;
+    } catch {
+      return false;
+    }
+  }
+  const referer = c.req.header("Referer");
+  if (referer) {
+    try {
+      return new URL(referer).host === requestHost;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function setSessionCookie(c: AppContext, token: string, maxAge: number) {
   setCookie(c, SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: true,
@@ -111,18 +148,27 @@ app.post("/api/admin/logout", (c) => {
   return c.json({ ok: true });
 });
 
+// --- Everything below this line requires a valid admin session. ---
+
 app.get("/api/admin/submissions", async (c) => {
   if (!(await isAuthenticated(c))) {
     return c.json({ ok: false, error: "No autorizado." }, 401);
   }
 
+  const trashed = c.req.query("trashed") === "true";
+
   try {
-    const rows = await listSubmissions(c.env.DB, FORM_SLUG);
+    const rows = await listSubmissions(c.env.DB, FORM_SLUG, { trashed });
     const submissions = rows.map((row) => ({
       id: row.id,
       created_at: row.created_at,
+      form_slug: row.form_slug,
+      form_version: row.form_version,
       client_name: row.client_name,
       contact_email: row.contact_email,
+      status: row.status,
+      reviewed_at: row.reviewed_at,
+      deleted_at: row.deleted_at,
       answers: JSON.parse(row.answers) as Answers,
     }));
     return c.json({ ok: true, submissions });
@@ -130,6 +176,75 @@ app.get("/api/admin/submissions", async (c) => {
     console.error("Failed to list submissions", error);
     return c.json({ ok: false, error: "No se pudieron cargar las respuestas." }, 500);
   }
+});
+
+async function requireAuthenticatedMutation(c: AppContext): Promise<boolean> {
+  if (!(await isAuthenticated(c))) return false;
+  if (!isSameOrigin(c)) return false;
+  return true;
+}
+
+app.post("/api/admin/submissions/:id/status", async (c) => {
+  if (!(await requireAuthenticatedMutation(c))) {
+    return c.json({ ok: false, error: "No autorizado." }, 401);
+  }
+
+  const id = c.req.param("id");
+  const body = await c.req.json<{ status?: unknown }>().catch(() => null);
+  const status = body?.status;
+  if (status !== "nuevo" && status !== "revisado") {
+    return c.json({ ok: false, error: "Estado inválido." }, 400);
+  }
+
+  const changed = await updateSubmissionStatus(c.env.DB, id, status as SubmissionStatus);
+  if (!changed) {
+    return c.json({ ok: false, error: "No se encontró la respuesta." }, 404);
+  }
+  return c.json({ ok: true });
+});
+
+app.post("/api/admin/submissions/:id/delete", async (c) => {
+  if (!(await requireAuthenticatedMutation(c))) {
+    return c.json({ ok: false, error: "No autorizado." }, 401);
+  }
+
+  const id = c.req.param("id");
+  const changed = await softDeleteSubmission(c.env.DB, id, "admin");
+  if (!changed) {
+    return c.json({ ok: false, error: "No se encontró la respuesta activa." }, 404);
+  }
+  return c.json({ ok: true });
+});
+
+app.post("/api/admin/submissions/:id/restore", async (c) => {
+  if (!(await requireAuthenticatedMutation(c))) {
+    return c.json({ ok: false, error: "No autorizado." }, 401);
+  }
+
+  const id = c.req.param("id");
+  const changed = await restoreSubmission(c.env.DB, id);
+  if (!changed) {
+    return c.json({ ok: false, error: "No se encontró la respuesta en la papelera." }, 404);
+  }
+  return c.json({ ok: true });
+});
+
+app.delete("/api/admin/submissions/:id", async (c) => {
+  if (!(await requireAuthenticatedMutation(c))) {
+    return c.json({ ok: false, error: "No autorizado." }, 401);
+  }
+
+  const id = c.req.param("id");
+  // permanentlyDeleteSubmission only ever removes rows that are already
+  // soft-deleted (deleted_at IS NOT NULL) — enforced in the SQL itself.
+  const changed = await permanentlyDeleteSubmission(c.env.DB, id);
+  if (!changed) {
+    return c.json(
+      { ok: false, error: "Solo se pueden eliminar permanentemente respuestas que ya estén en la papelera." },
+      404,
+    );
+  }
+  return c.json({ ok: true });
 });
 
 app.get("/admin", async (c) => {
