@@ -5,7 +5,11 @@
   "main": "worker/index.ts",
   "assets": {
     "directory": "./dist/client",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // Exposes the static-asset fetcher to the Worker as env.ASSETS, so
+    // routes the Worker itself doesn't recognize (e.g. /f/:slug) can be
+    // handed off to the SPA fallback instead of returning a bare 404.
+    "binding": "ASSETS"
   },
   // This binding connects the Worker to the production D1 database.
   "d1_databases": [
@@ -15,5 +19,10 @@
       "database_id": "10370c13-dc52-45b8-88b1-da3b97be03dd",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  // Powers the "generar con IA" option in the form builder — Cloudflare's
+  // own AI inference product, not a third-party service.
+  "ai": {
+    "binding": "AI"
+  }
 }

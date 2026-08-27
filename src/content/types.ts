@@ -22,3 +22,10 @@ export interface Question {
 export type Answer = string | string[];
 
 export type Answers = Record<string, Answer>;
+
+export interface FormDefinition {
+  slug: string;
+  name: string;
+  clientName: string;
+  questions: Question[];
+}

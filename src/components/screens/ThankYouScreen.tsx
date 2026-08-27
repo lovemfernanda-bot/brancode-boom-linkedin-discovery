@@ -1,7 +1,10 @@
-import { CLIENT_NAME } from "../../content/formMeta";
 import styles from "./ThankYouScreen.module.css";
 
-export function ThankYouScreen() {
+interface ThankYouScreenProps {
+  clientName: string;
+}
+
+export function ThankYouScreen({ clientName }: ThankYouScreenProps) {
   return (
     <div className={styles.screen}>
       <div className={styles.inner}>
@@ -9,12 +12,11 @@ export function ThankYouScreen() {
           ✓
         </span>
         <h1 className={styles.headline}>
-          Gracias por <em>compartir</em> tu visión.
+          <em>¡Gracias!</em> Recibimos tus respuestas.
         </h1>
         <p className={styles.body}>
-          Recibimos tus respuestas. Con esto empezamos a construir la presencia de{" "}
-          {CLIENT_NAME} en LinkedIn — con la voz y el posicionamiento correctos desde el
-          primer post.
+          En BranCode ya estamos revisando la información para dar los próximos pasos con{" "}
+          {clientName}.
         </p>
         <p className={styles.signature}>— Mafe, BranCode</p>
       </div>

@@ -52,20 +52,22 @@ export async function insertSubmission(db: D1Database, submission: NewSubmission
 
 export async function listSubmissions(
   db: D1Database,
-  formSlug: string,
-  options: { trashed?: boolean } = {},
-  limit = 200,
+  options: { trashed?: boolean; formSlug?: string } = {},
+  limit = 500,
 ): Promise<SubmissionRow[]> {
   const deletedClause = options.trashed ? "deleted_at IS NOT NULL" : "deleted_at IS NULL";
+  const formClause = options.formSlug ? "AND form_slug = ?" : "";
+  const bindings = options.formSlug ? [options.formSlug, limit] : [limit];
+
   const result = await db
     .prepare(
       `SELECT ${SUBMISSION_COLUMNS}
        FROM submissions
-       WHERE form_slug = ? AND ${deletedClause}
+       WHERE ${deletedClause} ${formClause}
        ORDER BY created_at DESC
        LIMIT ?`,
     )
-    .bind(formSlug, limit)
+    .bind(...bindings)
     .all<SubmissionRow>();
 
   return result.results ?? [];

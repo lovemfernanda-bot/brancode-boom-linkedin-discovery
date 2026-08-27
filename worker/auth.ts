@@ -2,6 +2,7 @@ export const SESSION_COOKIE_NAME = "admin_session";
 const SESSION_TTL_SECONDS = 8 * 60 * 60; // 8 hours
 
 interface AuthEnv {
+  ADMIN_USERNAME: string;
   ADMIN_PASSWORD: string;
 }
 
@@ -37,8 +38,12 @@ async function deriveSigningKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey("raw", digest, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }
 
-export function verifyPassword(env: AuthEnv, candidate: string): boolean {
-  return timingSafeEqual(candidate, env.ADMIN_PASSWORD);
+export function verifyCredentials(env: AuthEnv, username: string, password: string): boolean {
+  // Compare both regardless of the first result, so a wrong username alone
+  // doesn't make the response measurably faster than a wrong password.
+  const usernameOk = timingSafeEqual(username, env.ADMIN_USERNAME);
+  const passwordOk = timingSafeEqual(password, env.ADMIN_PASSWORD);
+  return usernameOk && passwordOk;
 }
 
 /**

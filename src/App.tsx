@@ -3,19 +3,42 @@ import { Header } from "./components/ui/Header";
 import { WelcomeScreen } from "./components/screens/WelcomeScreen";
 import { QuestionScreen } from "./components/screens/QuestionScreen";
 import { ThankYouScreen } from "./components/screens/ThankYouScreen";
-import { boomBalloonsQuestionnaire } from "./content/boomBalloonsQuestionnaire";
-import { CLIENT_NAME, FORM_SLUG, FORM_VERSION } from "./content/formMeta";
-import type { Answers } from "./content/types";
+import type { Answers, FormDefinition } from "./content/types";
 
-type Stage = "welcome" | "questions" | "submitting" | "thank-you" | "submit-error";
+type Stage = "loading" | "not-found" | "welcome" | "questions" | "submitting" | "thank-you" | "submit-error";
+
+// The very first form this app ever served, kept as the default when no
+// /f/:slug is present in the URL — preserves the existing public link.
+const DEFAULT_SLUG = "boom-balloons-linkedin-discovery";
+
+function resolveSlugFromLocation(): string {
+  const match = window.location.pathname.match(/^\/f\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : DEFAULT_SLUG;
+}
 
 export function App() {
-  const [stage, setStage] = useState<Stage>("welcome");
+  const [stage, setStage] = useState<Stage>("loading");
+  const [form, setForm] = useState<FormDefinition | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
 
-  const total = boomBalloonsQuestionnaire.length;
-  const currentQuestion = boomBalloonsQuestionnaire[stepIndex];
+  useEffect(() => {
+    const slug = resolveSlugFromLocation();
+    fetch(`/api/forms/${encodeURIComponent(slug)}`)
+      .then((response) => {
+        if (!response.ok) throw new Error("not-found");
+        return response.json();
+      })
+      .then((data: { ok: boolean; form?: FormDefinition }) => {
+        if (!data.ok || !data.form) throw new Error("not-found");
+        setForm(data.form);
+        setStage("welcome");
+      })
+      .catch(() => setStage("not-found"));
+  }, []);
+
+  const total = form?.questions.length ?? 0;
+  const currentQuestion = form?.questions[stepIndex];
 
   // Every screen (welcome, each question, thank-you) should start scrolled
   // to the top — otherwise a tall question that required scrolling leaves
@@ -44,17 +67,13 @@ export function App() {
   }
 
   async function submit() {
+    if (!form) return;
     setStage("submitting");
     try {
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          form_slug: FORM_SLUG,
-          form_version: FORM_VERSION,
-          client_name: CLIENT_NAME,
-          answers,
-        }),
+        body: JSON.stringify({ form_slug: form.slug, answers }),
       });
       if (!response.ok) throw new Error(`Request failed: ${response.status}`);
       setStage("thank-you");
@@ -72,13 +91,46 @@ export function App() {
           progressPercent={((stepIndex + 1) / total) * 100}
         />
       )}
-      {(stage === "welcome" || stage === "thank-you" || stage === "submit-error") && <Header />}
-
-      {stage === "welcome" && (
-        <WelcomeScreen questionCount={total} onStart={() => setStage("questions")} />
+      {(stage === "welcome" || stage === "thank-you" || stage === "submit-error" || stage === "not-found") && (
+        <Header />
       )}
 
-      {stage === "questions" && (
+      {stage === "loading" && (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ fontFamily: "var(--font-sans)", color: "var(--color-ink-soft)" }}>Cargando...</p>
+        </div>
+      )}
+
+      {stage === "not-found" && (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            padding: "3rem clamp(1.5rem, 6vw, 6.5rem)",
+            gap: "1rem",
+            maxWidth: "40rem",
+          }}
+        >
+          <h1 style={{ fontFamily: "var(--font-serif)", fontSize: "2rem" }}>Formulario no encontrado.</h1>
+          <p style={{ fontFamily: "var(--font-sans)", color: "var(--color-ink-soft)" }}>
+            Este enlace no corresponde a un formulario activo. Verifica el enlace o contacta a BranCode.
+          </p>
+        </div>
+      )}
+
+      {stage === "welcome" && form && (
+        <WelcomeScreen
+          formName={form.name}
+          clientName={form.clientName}
+          questionCount={total}
+          onStart={() => setStage("questions")}
+        />
+      )}
+
+      {stage === "questions" && currentQuestion && (
         <QuestionScreen
           key={currentQuestion.id}
           question={currentQuestion}
@@ -100,7 +152,7 @@ export function App() {
         </div>
       )}
 
-      {stage === "thank-you" && <ThankYouScreen />}
+      {stage === "thank-you" && <ThankYouScreen clientName={form?.clientName ?? ""} />}
 
       {stage === "submit-error" && (
         <div
