@@ -54,7 +54,7 @@ export async function generateFormFromText(ai: Ai, text: string): Promise<Genera
 
   let response: Awaited<ReturnType<Ai["run"]>>;
   try {
-    response = await ai.run("@cf/meta/llama-3.1-8b-instruct", {
+    response = await ai.run("@cf/zai-org/glm-4.7-flash", {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: trimmed },
