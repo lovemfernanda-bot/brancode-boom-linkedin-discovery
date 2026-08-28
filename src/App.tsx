@@ -32,6 +32,7 @@ export function App() {
       .then((data: { ok: boolean; form?: FormDefinition }) => {
         if (!data.ok || !data.form) throw new Error("not-found");
         setForm(data.form);
+        document.title = `${data.form.name} — ${data.form.clientName} | BranCode`;
         setStage("welcome");
       })
       .catch(() => setStage("not-found"));
