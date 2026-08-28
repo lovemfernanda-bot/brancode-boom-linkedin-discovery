@@ -368,11 +368,27 @@ app.post("/api/admin/forms/generate", async (c) => {
   }
 });
 
-app.get("/admin", async (c) => {
+async function renderAdminEntry(c: AppContext) {
   if (!(await isAuthenticated(c))) {
     return c.html(renderAdminLoginPage());
   }
   return c.html(renderAdminPage());
+}
+
+app.get("/admin", renderAdminEntry);
+
+/** True for any hostname whose first label is exactly "admin" (e.g. admin.brancode.io). */
+function isAdminHost(c: AppContext): boolean {
+  const host = c.req.header("host") ?? new URL(c.req.url).host;
+  return host.split(".")[0] === "admin";
+}
+
+// On a dedicated admin subdomain, the root path should be the admin panel
+// itself, not the public form — visiting admin.brancode.io should not
+// require typing /admin at the end.
+app.get("/", async (c) => {
+  if (isAdminHost(c)) return renderAdminEntry(c);
+  return c.env.ASSETS.fetch(c.req.raw);
 });
 
 // Anything else (e.g. /f/:slug for the public React app's client-side

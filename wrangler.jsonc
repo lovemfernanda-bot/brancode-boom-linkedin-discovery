@@ -9,7 +9,14 @@
     // Exposes the static-asset fetcher to the Worker as env.ASSETS, so
     // routes the Worker itself doesn't recognize (e.g. /f/:slug) can be
     // handed off to the SPA fallback instead of returning a bare 404.
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Without this, Cloudflare serves exact asset matches (like "/" ->
+    // index.html) directly and never invokes the Worker at all — which
+    // broke per-hostname routing (admin.<domain> needing "/" to show the
+    // admin panel instead of the public form). This makes every request
+    // reach the Worker first; our own routes fall back to ASSETS.fetch()
+    // for anything they don't specifically handle.
+    "run_worker_first": true
   },
   // This binding connects the Worker to the production D1 database.
   "d1_databases": [
