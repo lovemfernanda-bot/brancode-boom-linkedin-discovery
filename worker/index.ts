@@ -32,6 +32,7 @@ interface Env {
   ADMIN_PASSWORD: string;
   AI: Ai;
   ASSETS: Fetcher;
+  PUBLIC_FORM_BASE_URL: string;
 }
 
 type AppContext = Context<{ Bindings: Env }>;
@@ -379,7 +380,7 @@ async function renderAdminEntry(c: AppContext) {
   if (!(await isAuthenticated(c))) {
     return c.html(renderAdminLoginPage());
   }
-  return c.html(renderAdminPage());
+  return c.html(renderAdminPage(c.env.PUBLIC_FORM_BASE_URL));
 }
 
 app.get("/admin", renderAdminEntry);

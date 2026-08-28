@@ -156,7 +156,7 @@ ${SHARED_HEAD}
  * server-side (see worker/index.ts) — this function performs no access
  * control itself.
  */
-export function renderAdminPage(): string {
+export function renderAdminPage(publicFormBaseUrl: string): string {
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -348,6 +348,7 @@ ${SHARED_HEAD}
 
   <script>
     const ROOT_FORM_SLUG = "boom-balloons-linkedin-discovery";
+    const PUBLIC_FORM_BASE_URL = ${JSON.stringify(publicFormBaseUrl)};
     const NAV_ITEMS = [
       { key: "inicio", label: "Inicio" },
       { key: "formularios", label: "Formularios" },
@@ -410,21 +411,14 @@ ${SHARED_HEAD}
       return slug === ROOT_FORM_SLUG ? "/" : "/forms/" + encodeURIComponent(slug);
     }
 
-    // The admin panel itself can be viewed from an "admin." subdomain (e.g.
-    // admin.brancode.io), but public form links must always point at the
-    // main domain — never at the admin subdomain, which would look
-    // confusing/unsafe to share even though it doesn't actually require a
-    // login to fill out.
-    function publicOrigin() {
-      const parts = window.location.host.split(".");
-      if (parts[0] === "admin") {
-        return window.location.protocol + "//" + parts.slice(1).join(".");
-      }
-      return window.location.origin;
-    }
-
+    // Public form links always point at PUBLIC_FORM_BASE_URL, a dedicated
+    // domain configured server-side (see wrangler.jsonc) — never derived
+    // from whatever host the admin panel happens to be viewed from. The
+    // admin subdomain (admin.brancode.io) and the main marketing site
+    // (brancode.io) are both separate from this, and neither is a safe
+    // guess for where public forms actually live.
     function publicUrlFor(slug) {
-      return publicOrigin() + publicPathFor(slug);
+      return PUBLIC_FORM_BASE_URL + publicPathFor(slug);
     }
 
     function optionLabel(question, optionId) {

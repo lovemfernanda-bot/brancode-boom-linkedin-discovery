@@ -31,5 +31,13 @@
   // own AI inference product, not a third-party service.
   "ai": {
     "binding": "AI"
+  },
+  // The dedicated domain public form links point to. This is NOT the same
+  // as the "admin." subdomain the admin panel is viewed from, and it is
+  // NOT the main brancode.io site either (that's a separate, unrelated
+  // project) — it must be added as its own Custom Domain for this Worker
+  // in the Cloudflare dashboard before links generated here will resolve.
+  "vars": {
+    "PUBLIC_FORM_BASE_URL": "https://forms.brancode.io"
   }
 }
