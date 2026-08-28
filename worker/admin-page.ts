@@ -144,11 +144,13 @@ ${SHARED_HEAD}
 
 /**
  * BranCode OS V1 admin shell: sidebar navigation (Inicio / Formularios /
- * Respuestas / Papelera) plus a form builder and a submission detail view,
- * all rendered client-side inside one page — intentionally plain DOM +
- * fetch (no framework/build step) since this is still a small internal
- * tool. Adding a future section later is one sidebar entry + one render
- * function.
+ * Papelera) plus a form builder, per-form responses, and a submission
+ * detail view, all rendered client-side inside one page — intentionally
+ * plain DOM + fetch (no framework/build step) since this is still a small
+ * internal tool. Responses live inside each form (Formularios → Ver
+ * respuestas) rather than as a separate top-level section, since every
+ * submission belongs to exactly one form. Adding a future section later is
+ * one sidebar entry + one render function.
  *
  * Only rendered by the Worker after it has verified the session cookie
  * server-side (see worker/index.ts) — this function performs no access
@@ -296,6 +298,11 @@ ${SHARED_HEAD}
   .filter-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
   .filter-label { font-size: 0.88rem; font-weight: 600; color: var(--color-ink-soft); }
 
+  .settings-tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--color-bg-subtle); margin-bottom: 1.5rem; }
+  .settings-tab { background: none; border: none; padding: 0.65rem 0.1rem; font-size: 0.95rem; font-weight: 600; color: var(--color-ink-soft); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .settings-tab:hover { color: var(--color-ink); }
+  .settings-tab.active { color: var(--color-ink); border-bottom-color: var(--color-ink); }
+
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.45);
     display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 50;
@@ -344,17 +351,24 @@ ${SHARED_HEAD}
     const NAV_ITEMS = [
       { key: "inicio", label: "Inicio" },
       { key: "formularios", label: "Formularios" },
-      { key: "respuestas", label: "Respuestas" },
+      { key: "configuracion", label: "Configuración" },
+    ];
+    const SETTINGS_TABS = [
       { key: "papelera", label: "Papelera" },
+      { key: "usuarios", label: "Usuarios" },
     ];
 
     let activeSubmissions = null;
     let trashedSubmissions = null;
     let forms = null;
+    let loadError = null;
     let currentSection = "inicio";
     let currentDetail = null; // { id, trashed }
     let currentBuilder = null; // { formId: string|null, draft: {...}, aiText: string }
-    let respuestasFormFilter = "all";
+    let currentFormResponses = null; // slug of the form whose responses are being viewed, or null
+    let formResponsesSearch = "";
+    let currentSettingsTab = "papelera";
+    let currentUser = null;
 
     function el(tag, props, children) {
       const node = document.createElement(tag);
@@ -402,10 +416,23 @@ ${SHARED_HEAD}
     }
 
     async function api(path, options) {
-      const response = await fetch(path, {
-        ...options,
-        headers: { "Content-Type": "application/json", ...((options && options.headers) || {}) },
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      let response;
+      try {
+        response = await fetch(path, {
+          ...options,
+          headers: { "Content-Type": "application/json", ...((options && options.headers) || {}) },
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if (error.name === "AbortError") {
+          throw new Error("El servidor tardó demasiado en responder. Verifica tu conexión e inténtalo de nuevo.");
+        }
+        throw new Error("No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.");
+      } finally {
+        clearTimeout(timeoutId);
+      }
       if (response.status === 401) {
         window.location.reload();
         throw new Error("Sesión expirada.");
@@ -433,6 +460,24 @@ ${SHARED_HEAD}
       const data = await api("/api/admin/forms");
       forms = data.forms;
       return forms;
+    }
+
+    async function loadMe() {
+      const data = await api("/api/admin/me");
+      currentUser = data.username;
+      return currentUser;
+    }
+
+    async function loadAll() {
+      loadError = null;
+      renderApp();
+      try {
+        await Promise.all([loadActive(), loadForms()]);
+      } catch (error) {
+        console.error("Failed to load admin data", error);
+        loadError = error.message || "No se pudo conectar con el servidor.";
+      }
+      renderApp();
     }
 
     function showToast(message) {
@@ -566,6 +611,7 @@ ${SHARED_HEAD}
             currentSection = item.key;
             currentDetail = null;
             currentBuilder = null;
+            currentFormResponses = null;
             renderApp();
           },
         });
@@ -582,6 +628,8 @@ ${SHARED_HEAD}
         const d = new Date(s.created_at);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       }).length;
+      const pendingCount = activeSubmissions.filter((s) => s.status === "nuevo").length;
+      const activeFormsCount = (forms || []).filter((f) => f.status === "activo").length;
 
       const grid = el("div", { class: "stat-grid" }, [
         el("div", { class: "stat-card" }, [
@@ -589,8 +637,16 @@ ${SHARED_HEAD}
           el("div", { class: "stat-label", text: "Respuestas totales" }),
         ]),
         el("div", { class: "stat-card" }, [
+          el("div", { class: "stat-value", text: String(pendingCount) }),
+          el("div", { class: "stat-label", text: "Pendientes de revisar" }),
+        ]),
+        el("div", { class: "stat-card" }, [
           el("div", { class: "stat-value", text: String(thisMonthCount) }),
           el("div", { class: "stat-label", text: "Respuestas este mes" }),
+        ]),
+        el("div", { class: "stat-card" }, [
+          el("div", { class: "stat-value", text: String(activeFormsCount) }),
+          el("div", { class: "stat-label", text: "Formularios activos" }),
         ]),
       ]);
       main.appendChild(grid);
@@ -610,12 +666,18 @@ ${SHARED_HEAD}
         const formsGrid = el("div", { class: "stat-grid" });
         for (const form of activeForms) {
           const count = activeSubmissions.filter((s) => s.form_slug === form.slug).length;
-          formsGrid.appendChild(
-            el("div", { class: "stat-card" }, [
-              el("div", { class: "stat-value", text: String(count) }),
-              el("div", { class: "stat-label", text: form.name }),
-            ]),
-          );
+          const card = el("div", { class: "stat-card" }, [
+            el("div", { class: "stat-value", text: String(count) }),
+            el("div", { class: "stat-label", text: form.name }),
+          ]);
+          card.style.cursor = "pointer";
+          card.addEventListener("click", () => {
+            currentSection = "formularios";
+            currentFormResponses = form.slug;
+            formResponsesSearch = "";
+            renderApp();
+          });
+          formsGrid.appendChild(card);
         }
         main.appendChild(formsGrid);
       }
@@ -990,7 +1052,15 @@ ${SHARED_HEAD}
       );
       card.appendChild(el("p", { class: "detail-meta", text: form.clientName }));
       card.appendChild(
-        el("p", { class: "detail-meta", text: form.questions.length + " pregunta(s) · " + responseCount + " respuesta(s)" }),
+        el("p", {
+          class: "detail-meta",
+          text:
+            form.questions.length +
+            " pregunta(s) · " +
+            responseCount +
+            " respuesta(s) · actualizado " +
+            formatDate(form.updatedAt),
+        }),
       );
       const linkRow = el("p", { class: "detail-meta" });
       linkRow.appendChild(document.createTextNode("Enlace público: "));
@@ -998,15 +1068,85 @@ ${SHARED_HEAD}
       card.appendChild(linkRow);
       card.appendChild(
         el("div", { class: "detail-actions" }, [
+          el("button", {
+            class: "btn btn-primary",
+            text: "Ver respuestas (" + responseCount + ")",
+            onClick: () => {
+              currentFormResponses = form.slug;
+              formResponsesSearch = "";
+              renderApp();
+            },
+          }),
           el("button", { class: "btn", text: "Editar", onClick: () => openBuilderForEdit(form) }),
+          el("button", {
+            class: "btn",
+            text: "Copiar enlace",
+            onClick: () => {
+              navigator.clipboard
+                .writeText(window.location.origin + path)
+                .then(() => showToast("Enlace copiado."))
+                .catch(() => showToast("No se pudo copiar el enlace."));
+            },
+          }),
         ]),
       );
       return card;
     }
 
+    function renderFormResponses(main, slug) {
+      const form = findForm(slug);
+      main.appendChild(
+        el("button", {
+          class: "back-btn",
+          text: "← Volver a Formularios",
+          onClick: () => {
+            currentFormResponses = null;
+            renderApp();
+          },
+        }),
+      );
+      main.appendChild(el("h1", { class: "page-title", text: form ? form.name : slug }));
+      main.appendChild(el("p", { class: "page-subtitle", text: "Respuestas de este formulario" }));
+
+      const filterRow = el("div", { class: "filter-row" });
+      filterRow.appendChild(el("label", { class: "filter-label", text: "Buscar:" }));
+      const searchInput = el("input", {
+        type: "text",
+        class: "field-input field-input-inline",
+        placeholder: "Nombre o email...",
+      });
+      searchInput.value = formResponsesSearch;
+      searchInput.addEventListener("input", (e) => {
+        formResponsesSearch = e.target.value;
+        renderApp();
+      });
+      filterRow.appendChild(searchInput);
+      main.appendChild(filterRow);
+
+      let rows = activeSubmissions.filter((s) => s.form_slug === slug);
+      const query = formResponsesSearch.trim().toLowerCase();
+      if (query) {
+        rows = rows.filter(
+          (s) =>
+            (s.client_name || "").toLowerCase().includes(query) ||
+            (s.contact_email || "").toLowerCase().includes(query),
+        );
+      }
+
+      if (rows.length === 0) {
+        main.appendChild(el("p", { class: "empty-state", text: "No hay respuestas para este formulario." }));
+        return;
+      }
+      main.appendChild(buildSubmissionsTable(rows, { trashed: false }));
+    }
+
     function renderFormularios(main) {
       if (currentBuilder) {
         renderFormBuilder(main);
+        return;
+      }
+      if (currentFormResponses) {
+        renderFormResponses(main, currentFormResponses);
         return;
       }
 
@@ -1099,53 +1239,22 @@ ${SHARED_HEAD}
       return table;
     }
 
-    function renderRespuestas(main) {
-      main.appendChild(el("h1", { class: "page-title", text: "Respuestas" }));
-      main.appendChild(el("p", { class: "page-subtitle", text: "Todas las respuestas activas, más recientes primero" }));
-
-      if ((forms || []).length > 0) {
-        const filterRow = el("div", { class: "filter-row" });
-        filterRow.appendChild(el("label", { class: "filter-label", text: "Formulario:" }));
-        const select = el("select", { class: "field-input field-input-inline" });
-        const allOpt = el("option", { value: "all", text: "Todos los formularios" });
-        if (respuestasFormFilter === "all") allOpt.setAttribute("selected", "selected");
-        select.appendChild(allOpt);
-        for (const form of forms) {
-          const opt = el("option", { value: form.slug, text: form.name });
-          if (respuestasFormFilter === form.slug) opt.setAttribute("selected", "selected");
-          select.appendChild(opt);
-        }
-        select.addEventListener("change", (e) => {
-          respuestasFormFilter = e.target.value;
-          renderApp();
-        });
-        filterRow.appendChild(select);
-        main.appendChild(filterRow);
-      }
-
-      const filtered =
-        respuestasFormFilter === "all"
-          ? activeSubmissions
-          : activeSubmissions.filter((s) => s.form_slug === respuestasFormFilter);
-
-      if (filtered.length === 0) {
-        main.appendChild(el("p", { class: "empty-state", text: "No hay respuestas para este filtro." }));
-        return;
-      }
-      main.appendChild(buildSubmissionsTable(filtered, { trashed: false }));
-    }
-
-    function renderPapelera(main) {
-      main.appendChild(el("h1", { class: "page-title", text: "Papelera" }));
-      main.appendChild(el("p", { class: "page-subtitle", text: "Respuestas eliminadas — puedes restaurarlas o borrarlas para siempre" }));
+    function renderPapeleraTab(main) {
+      main.appendChild(
+        el("p", {
+          class: "detail-meta",
+          text: "Respuestas eliminadas — puedes restaurarlas o borrarlas para siempre.",
+        }),
+      );
 
       if (trashedSubmissions === null) {
-        main.appendChild(el("p", { class: "loading-state", text: "Cargando..." }));
+        const loadingEl = el("p", { class: "loading-state", text: "Cargando..." });
+        main.appendChild(loadingEl);
         loadTrashed()
           .then(renderApp)
           .catch((error) => {
-            main.innerHTML = "";
-            main.appendChild(el("p", { class: "error-state", text: error.message }));
+            loadingEl.className = "error-state";
+            loadingEl.textContent = error.message;
           });
         return;
       }
@@ -1155,6 +1264,58 @@ ${SHARED_HEAD}
         return;
       }
       main.appendChild(buildSubmissionsTable(trashedSubmissions, { trashed: true }));
+    }
+
+    function renderUsuarios(main) {
+      if (currentUser === null) {
+        const loadingEl = el("p", { class: "loading-state", text: "Cargando..." });
+        main.appendChild(loadingEl);
+        loadMe()
+          .then(renderApp)
+          .catch((error) => {
+            loadingEl.className = "error-state";
+            loadingEl.textContent = error.message;
+          });
+        return;
+      }
+
+      const card = el("div", { class: "detail-card" });
+      card.appendChild(el("h2", { class: "section-heading", text: "Usuario administrador" }));
+      card.appendChild(el("p", { class: "detail-meta", text: currentUser }));
+      card.appendChild(
+        el("p", {
+          class: "detail-meta",
+          text:
+            "Por ahora BranCode OS tiene un solo usuario administrador, configurado directamente en Cloudflare. " +
+            "Agregar más usuarios (cada uno con su propio usuario y contraseña) es posible, pero requiere un " +
+            "pequeño cambio en la base de datos. Avísame cuando lo quieras y lo preparamos para que lo revises " +
+            "y lo apruebes antes de aplicarlo, como hacemos siempre con estos cambios.",
+        }),
+      );
+      main.appendChild(card);
+    }
+
+    function renderConfiguracion(main) {
+      main.appendChild(el("h1", { class: "page-title", text: "Configuración" }));
+      main.appendChild(el("p", { class: "page-subtitle", text: "Papelera, usuarios y otros ajustes de BranCode OS" }));
+
+      const tabs = el("div", { class: "settings-tabs" });
+      for (const tab of SETTINGS_TABS) {
+        tabs.appendChild(
+          el("button", {
+            class: "settings-tab" + (currentSettingsTab === tab.key ? " active" : ""),
+            text: tab.label,
+            onClick: () => {
+              currentSettingsTab = tab.key;
+              renderApp();
+            },
+          }),
+        );
+      }
+      main.appendChild(tabs);
+
+      if (currentSettingsTab === "usuarios") renderUsuarios(main);
+      else renderPapeleraTab(main);
     }
 
     function renderDetail(main, ref) {
@@ -1243,7 +1404,12 @@ ${SHARED_HEAD}
       main.innerHTML = "";
 
       if (activeSubmissions === null || forms === null) {
-        main.appendChild(el("p", { class: "loading-state", text: "Cargando..." }));
+        if (loadError) {
+          main.appendChild(el("p", { class: "error-state", text: loadError }));
+          main.appendChild(el("button", { class: "btn btn-primary", text: "Reintentar", onClick: () => loadAll() }));
+        } else {
+          main.appendChild(el("p", { class: "loading-state", text: "Cargando..." }));
+        }
         return;
       }
 
@@ -1254,8 +1420,7 @@ ${SHARED_HEAD}
 
       if (currentSection === "inicio") renderInicio(main);
       else if (currentSection === "formularios") renderFormularios(main);
-      else if (currentSection === "respuestas") renderRespuestas(main);
-      else if (currentSection === "papelera") renderPapelera(main);
+      else if (currentSection === "configuracion") renderConfiguracion(main);
     }
 
     document.getElementById("logout-btn").addEventListener("click", async () => {
@@ -1264,13 +1429,7 @@ ${SHARED_HEAD}
     });
 
     renderApp();
-    Promise.all([loadActive(), loadForms()])
-      .then(renderApp)
-      .catch((error) => {
-        const main = document.getElementById("main");
-        main.innerHTML = "";
-        main.appendChild(el("p", { class: "error-state", text: error.message }));
-      });
+    loadAll();
   </script>
 </body>
 </html>`;

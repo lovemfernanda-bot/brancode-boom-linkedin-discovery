@@ -167,6 +167,13 @@ app.post("/api/admin/logout", (c) => {
   return c.json({ ok: true });
 });
 
+app.get("/api/admin/me", async (c) => {
+  if (!(await isAuthenticated(c))) {
+    return c.json({ ok: false, error: "No autorizado." }, 401);
+  }
+  return c.json({ ok: true, username: c.env.ADMIN_USERNAME });
+});
+
 // --- Everything below this line requires a valid admin session. ---
 
 app.get("/api/admin/submissions", async (c) => {
