@@ -8,11 +8,11 @@ import type { Answers, FormDefinition } from "./content/types";
 type Stage = "loading" | "not-found" | "welcome" | "questions" | "submitting" | "thank-you" | "submit-error";
 
 // The very first form this app ever served, kept as the default when no
-// /f/:slug is present in the URL — preserves the existing public link.
+// /forms/:slug is present in the URL — preserves the existing public link.
 const DEFAULT_SLUG = "boom-balloons-linkedin-discovery";
 
 function resolveSlugFromLocation(): string {
-  const match = window.location.pathname.match(/^\/f\/([^/]+)\/?$/);
+  const match = window.location.pathname.match(/^\/forms\/([^/]+)\/?$/);
   return match ? decodeURIComponent(match[1]) : DEFAULT_SLUG;
 }
 

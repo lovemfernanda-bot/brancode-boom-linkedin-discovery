@@ -63,8 +63,17 @@ export async function generateFormFromText(ai: Ai, text: string): Promise<Genera
     });
   } catch (error) {
     console.error("Workers AI call failed", error);
+    // This endpoint is already gated behind an authenticated admin session, so
+    // it's safe to surface the underlying error message here (unlike a public
+    // endpoint) — it's the only way to diagnose a production-only failure
+    // without direct access to Cloudflare's dashboard logs. Still guard
+    // against ever echoing something that looks like a local filesystem/stack
+    // trace, just in case.
+    const detail = error instanceof Error ? error.message : String(error);
+    const looksLikeStackTrace = /node_modules|\/(home|root)\//.test(detail);
     throw new AiGenerationError(
-      "El generador con IA no está disponible en este momento. Puedes crear las preguntas manualmente.",
+      "El generador con IA no está disponible en este momento. Puedes crear las preguntas manualmente." +
+        (detail && !looksLikeStackTrace ? ` (Detalle técnico: ${detail})` : ""),
     );
   }
 

@@ -398,7 +398,7 @@ app.get("/", async (c) => {
   return c.env.ASSETS.fetch(c.req.raw);
 });
 
-// Anything else (e.g. /f/:slug for the public React app's client-side
+// Anything else (e.g. /forms/:slug for the public React app's client-side
 // routing) isn't a route this Worker knows about — hand it to the static
 // asset handler, which applies not_found_handling: "single-page-application"
 // and serves index.html instead of a bare 404.

@@ -309,7 +309,7 @@ ${SHARED_HEAD}
   }
   .modal-box { background: #fff; border-radius: 16px; padding: 1.75rem; width: 100%; max-width: 26rem; }
   .modal-title { font-family: var(--font-serif); font-weight: 600; font-size: 1.3rem; margin: 0 0 0.6rem; }
-  .modal-message { color: var(--color-ink-soft); margin: 0; line-height: 1.5; }
+  .modal-message { color: var(--color-ink-soft); margin: 0; line-height: 1.5; white-space: pre-line; word-break: break-word; }
   .modal-error { color: #c7503f; font-size: 0.88rem; margin: 0.75rem 0 0; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
 
@@ -407,7 +407,24 @@ ${SHARED_HEAD}
     }
 
     function publicPathFor(slug) {
-      return slug === ROOT_FORM_SLUG ? "/" : "/f/" + encodeURIComponent(slug);
+      return slug === ROOT_FORM_SLUG ? "/" : "/forms/" + encodeURIComponent(slug);
+    }
+
+    // The admin panel itself can be viewed from an "admin." subdomain (e.g.
+    // admin.brancode.io), but public form links must always point at the
+    // main domain — never at the admin subdomain, which would look
+    // confusing/unsafe to share even though it doesn't actually require a
+    // login to fill out.
+    function publicOrigin() {
+      const parts = window.location.host.split(".");
+      if (parts[0] === "admin") {
+        return window.location.protocol + "//" + parts.slice(1).join(".");
+      }
+      return window.location.origin;
+    }
+
+    function publicUrlFor(slug) {
+      return publicOrigin() + publicPathFor(slug);
     }
 
     function optionLabel(question, optionId) {
@@ -1014,13 +1031,27 @@ ${SHARED_HEAD}
           };
           if (isEditing) {
             await api("/api/admin/forms/" + currentBuilder.formId, { method: "PATCH", body: JSON.stringify(payload) });
+            await loadForms();
+            currentBuilder = null;
+            renderApp();
+            showToast("Formulario actualizado.");
           } else {
-            await api("/api/admin/forms", { method: "POST", body: JSON.stringify(payload) });
+            const created = await api("/api/admin/forms", { method: "POST", body: JSON.stringify(payload) });
+            await loadForms();
+            currentBuilder = null;
+            renderApp();
+            const link = publicUrlFor(created.form.slug);
+            openModal({
+              title: "¡Formulario creado!",
+              message: "Ya puedes compartir este formulario con tu cliente por email o donde prefieras. Este es su enlace:\\n\\n" + link,
+              confirmLabel: "Copiar enlace",
+              cancelLabel: "Cerrar",
+              onConfirm: async () => {
+                await navigator.clipboard.writeText(link);
+                showToast("Enlace copiado.");
+              },
+            });
           }
-          await loadForms();
-          currentBuilder = null;
-          renderApp();
-          showToast(isEditing ? "Formulario actualizado." : "Formulario creado.");
         } catch (error) {
           saveError.textContent = error.message;
           saveError.style.display = "block";
@@ -1038,7 +1069,7 @@ ${SHARED_HEAD}
 
     function renderFormCard(form) {
       const responseCount = (activeSubmissions || []).filter((s) => s.form_slug === form.slug).length;
-      const path = publicPathFor(form.slug);
+      const url = publicUrlFor(form.slug);
 
       const card = el("div", { class: "detail-card" });
       card.appendChild(
@@ -1064,7 +1095,7 @@ ${SHARED_HEAD}
       );
       const linkRow = el("p", { class: "detail-meta" });
       linkRow.appendChild(document.createTextNode("Enlace público: "));
-      linkRow.appendChild(el("a", { href: path, target: "_blank", rel: "noopener", text: window.location.origin + path }));
+      linkRow.appendChild(el("a", { href: url, target: "_blank", rel: "noopener", text: url }));
       card.appendChild(linkRow);
       card.appendChild(
         el("div", { class: "detail-actions" }, [
@@ -1083,7 +1114,7 @@ ${SHARED_HEAD}
             text: "Copiar enlace",
             onClick: () => {
               navigator.clipboard
-                .writeText(window.location.origin + path)
+                .writeText(url)
                 .then(() => showToast("Enlace copiado."))
                 .catch(() => showToast("No se pudo copiar el enlace."));
             },
